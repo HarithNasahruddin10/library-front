@@ -26,6 +26,7 @@ import {
 } from '@mui/material';
 import AddBook from './AddBook';
 import { useNavigate } from 'react-router-dom';
+import Navbar from './Navbar';
 
 const BookList = () => {
   const navigate = useNavigate();
@@ -39,7 +40,13 @@ const BookList = () => {
   const [openCheckoutDialog, setOpenCheckoutDialog] = useState(false);
   const [openAddBookDialog, setOpenAddBookDialog] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8; // Adjust as needed
+  const itemsPerPage = 8;
+  const [selectedBookDetails, setSelectedBookDetails] = useState(null);
+const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
+const [latestCheckedOutBookDetails, setLatestCheckedOutBookDetails] = useState(null);
+const [openLatestCheckedOutDialog, setOpenLatestCheckedOutDialog] = useState(false);
+
+
 
   useEffect(() => {
     axios.get('http://localhost:8080/api/books')
@@ -162,12 +169,32 @@ const BookList = () => {
         // Handle error (e.g., show an error message)
     }
 };
+const fetchBookDetails = async (bookId) => {
+  try {
+      const response = await axios.get(`http://localhost:8080/api/books/${bookId}`);
+      setSelectedBookDetails(response.data);
+      setOpenDetailsDialog(true);
+  } catch (error) {
+      console.error('Error fetching book details:', error);
+  }
+};
 
+const fetchLatestCheckedOutBookDetails = async (bookId) => {
+  try {
+      const response = await axios.get(`http://localhost:8080/api/assigned-books/checked-out/${bookId}`);
+      setLatestCheckedOutBookDetails(response.data);
+      setOpenLatestCheckedOutDialog(true);
+  } catch (error) {
+      console.error('Error fetching latest checked-out book details:', error);
+  }
+};
       
   
      
 
   return (
+    <>
+        <Navbar/>
     <Container>
       <Box sx={{ width: '100%' }}>
         <Grid container spacing={3}>
@@ -260,8 +287,14 @@ const BookList = () => {
                         style={{ width: '100%', height: 'auto', marginTop: 2 }}
                       />
                     </CardContent>
+                    
                     <CardActions style={{ marginTop: 'auto' }}>
+                    
                     {book.status === 'AVAILABLE' && (
+                      <>
+                        <Button size="small" onClick={() => fetchBookDetails(book.id)}>
+                        View Details
+                     </Button>
                         <Button
                           size="small"
                           onClick={() => openCheckoutForm(book)}
@@ -269,8 +302,17 @@ const BookList = () => {
                         >
                           Checkout
                         </Button>
+                        </>
                       )}
                       {book.status === 'CHECKED_OUT' && (
+                          <>
+                        <Button
+                        size="small"
+                        onClick={() => fetchLatestCheckedOutBookDetails(book.id)}
+                        disabled={book.status !== 'CHECKED_OUT'}
+                        >
+                        View Checked-Out Details
+                        </Button>
                         <Button
                           size="small"
                           onClick={() => handleReturn(book.id)}
@@ -279,8 +321,9 @@ const BookList = () => {
                         >
                           Return Now
                         </Button>
+                        </>
                       )}
-                    
+                        
                     </CardActions>
                   </Card>
                 </Grid>
@@ -318,6 +361,40 @@ const BookList = () => {
             <Button onClick={handleCloseCheckoutForm}>Cancel</Button>
           </DialogActions>
         </Dialog>
+        {/* Book Details Dialog */}
+<Dialog open={openDetailsDialog} onClose={() => setOpenDetailsDialog(false)} maxWidth="md" fullWidth>
+    <DialogTitle>Book Details</DialogTitle>
+    <DialogContent>
+        {selectedBookDetails && (
+            <div>
+                <Typography variant="h5" gutterBottom>
+                    {selectedBookDetails.title}
+                </Typography>
+                <Typography color="text.secondary">
+                    Author: {selectedBookDetails.author}
+                </Typography>
+                <Typography color="text.secondary">
+                    Description: {selectedBookDetails.desc}
+                </Typography>
+                <Typography color="text.secondary">
+                    Year Publish: {selectedBookDetails.yearPublish}
+                </Typography>
+                <Typography color="text.secondary">
+                    status: {selectedBookDetails.status}
+                </Typography>
+                <img
+                        src={`http://localhost:8080/api/books/image/${selectedBookDetails.id}`}
+                        alt={`Cover for ${selectedBookDetails.title}`}
+                        style={{ width: '100%', height: 'auto', marginTop: 2 }}
+                      />
+                {/* Include other details as needed */}
+            </div>
+        )}
+    </DialogContent>
+    <DialogActions>
+        <Button onClick={() => setOpenDetailsDialog(false)}>Close</Button>
+    </DialogActions>
+</Dialog>
 
         {/* Add Book Form */}
         <Dialog open={openAddBookDialog} onClose={handleCloseAddBookDialog} maxWidth="xs" fullWidth>
@@ -328,7 +405,95 @@ const BookList = () => {
         </Dialog>
       </Box>
     </Container>
+
+    <Dialog
+        open={openLatestCheckedOutDialog}
+        onClose={() => setOpenLatestCheckedOutDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        {latestCheckedOutBookDetails && (
+          <>
+            <DialogTitle>Latest Checked-Out Book Details</DialogTitle>
+            <DialogContent>
+              <Box display="flex" alignItems="center" justifyContent="center">
+                <img
+                  src={`http://localhost:8080/api/books/image/${latestCheckedOutBookDetails.id}`}
+                  alt={`Cover for ${latestCheckedOutBookDetails.title}`}
+                  style={{ maxWidth: '100%', height: 'auto' }}
+                />
+              </Box>
+              <Typography variant="h5" gutterBottom>
+                {latestCheckedOutBookDetails.title}
+              </Typography>
+              <Typography color="text.secondary">
+                Author: {latestCheckedOutBookDetails.author}
+              </Typography>
+              <Typography color="text.secondary">
+                Description: {latestCheckedOutBookDetails.desc}
+              </Typography>
+              {/* Include other details as needed */}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenLatestCheckedOutDialog(false)}>Close</Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* Latest Checked-Out Details Dialog */}
+  <Dialog
+    open={openLatestCheckedOutDialog}
+    onClose={() => setOpenLatestCheckedOutDialog(false)}
+    maxWidth="md"
+    fullWidth
+  >
+    {latestCheckedOutBookDetails && (
+      <>
+        <DialogTitle>Latest Checked-Out Book Details</DialogTitle>
+        <DialogContent>
+          <Box display="flex" alignItems="center" justifyContent="center">
+            <img
+              src={`http://localhost:8080/api/books/image/${latestCheckedOutBookDetails.bookId}`}
+              alt={`Cover for ${latestCheckedOutBookDetails.bookTitle}`}
+              style={{ maxWidth: '100%', height: 'auto' }}
+            />
+          </Box>
+          <Typography variant="h5" gutterBottom>
+            {latestCheckedOutBookDetails.bookTitle}
+          </Typography>
+          <Typography color="text.secondary">
+            Author: {latestCheckedOutBookDetails.bookAuthor}
+          </Typography>
+          <Typography color="text.secondary">
+            Description: {latestCheckedOutBookDetails.bookDesc}
+          </Typography>
+          <Typography color="text.secondary">
+            Year Publish: {latestCheckedOutBookDetails.bookYearPublish}
+          </Typography>
+          <Typography color="text.secondary">
+            Status: {latestCheckedOutBookDetails.bookStatus}
+          </Typography>
+          <Typography color="text.secondary">
+            Student: {`${latestCheckedOutBookDetails.studentFirstName} ${latestCheckedOutBookDetails.studentLastName}`}
+          </Typography>
+          <Typography color="text.secondary">
+            Student ID: {latestCheckedOutBookDetails.studentStudentId}
+          </Typography>
+          {/* Include other details as needed */}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenLatestCheckedOutDialog(false)}>Close</Button>
+        </DialogActions>
+      </>
+    )}
+  </Dialog>
+      
+    </>
+
+    
   );
+  
 }
 
 export default BookList;

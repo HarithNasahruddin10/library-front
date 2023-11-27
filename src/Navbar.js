@@ -1,26 +1,24 @@
-// src/components/Home.js
+// Navbar.js
 import React from 'react';
-import Navbar from './Navbar';
-import BookList from './BookList';
-import AddStudentForm from './AddStudentForm';
-import AddBookForm from './AddBookForm';
-import AssignBookForm from './AssignBookForm';
+import { Link } from 'react-router-dom';
+import { AppBar, Toolbar, Typography, Button } from '@mui/material';
 
-function Home() {
+const Navbar = () => {
   return (
-    <div>
-      <Navbar />
-      <h1>Library Management App</h1>
-      <h2>Book List</h2>
-      <BookList />
-      <h2>Add Student</h2>
-      <AddStudentForm />
-      <h2>Add Book</h2>
-      <AddBookForm />
-      <h2>Assign Book</h2>
-      <AssignBookForm />
-    </div>
+    <AppBar position="static">
+      <Toolbar>
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          Library App
+        </Typography>
+        <Button color="inherit" component={Link} to="/book">
+          Book List
+        </Button>
+        <Button color="inherit" component={Link} to="/student">
+          Student List
+        </Button>
+      </Toolbar>
+    </AppBar>
   );
-}
+};
 
-export default Home;
+export default Navbar;
