@@ -40,11 +40,12 @@ const BookList = () => {
   const [openCheckoutDialog, setOpenCheckoutDialog] = useState(false);
   const [openAddBookDialog, setOpenAddBookDialog] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 100;
   const [selectedBookDetails, setSelectedBookDetails] = useState(null);
 const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
 const [latestCheckedOutBookDetails, setLatestCheckedOutBookDetails] = useState(null);
 const [openLatestCheckedOutDialog, setOpenLatestCheckedOutDialog] = useState(false);
+const [isValidStudentId, setIsValidStudentId] = useState(true);
 
 
 
@@ -74,10 +75,20 @@ const [openLatestCheckedOutDialog, setOpenLatestCheckedOutDialog] = useState(fal
 
   const handleCheckout = async () => {
     try {
+      // Check the validity of the student ID
+      const isValid = await checkStudentValidity(studentId);
+  
+      if (!isValid) {
+        // Set the state to indicate an invalid student ID
+        setIsValidStudentId(false);
+        return;
+      }
+  
+      // Proceed with the checkout if the student ID is valid
       const response = await axios.post(
         'http://localhost:8080/api/assigned-books/checkout',
         {
-          bookId: selectedBook.id, // Use selectedBook.id instead of bookId
+          bookId: selectedBook.id,
           studentId: studentId,
         },
         {
@@ -89,16 +100,28 @@ const [openLatestCheckedOutDialog, setOpenLatestCheckedOutDialog] = useState(fal
   
       // Handle the response as needed
       console.log('Checkout successful:', response.data);
-        navigate('/')
+      navigate('/');
+  
       // Reset state after successful checkout
       setSelectedBook(null);
       setStudentId('');
       handleCloseCheckoutForm(); // Close the checkout form modal
+      setIsValidStudentId(true); // Reset the validity state
     } catch (error) {
       console.error('Error during checkout:', error);
     }
   };
   
+  // Function to check the validity of the student ID
+  const checkStudentValidity = async (studentId) => {
+    try {
+      const response = await axios.get(`http://localhost:8080/api/students/${studentId}`);
+      return response.data.isValid; // Assuming the API returns a boolean indicating validity
+    } catch (error) {
+      console.error('Error checking student validity:', error);
+      return false;
+    }
+  };
 
   const openCheckoutForm = (book) => {
     setSelectedBook(book);
@@ -341,26 +364,31 @@ const fetchLatestCheckedOutBookDetails = async (bookId) => {
 
         {/* Checkout Form */}
         <Dialog open={openCheckoutDialog} onClose={handleCloseCheckoutForm} maxWidth="xs" fullWidth>
-          <DialogTitle>Checkout Form</DialogTitle>
-          <DialogContent>
-            <form>
-              <TextField
-                label="Student ID"
-                type="text"
-                fullWidth
-                value={studentId}
-                onChange={(e) => setStudentId(e.target.value)}
-                sx={{ marginBottom: 2 }}
-              />
-              <Button variant="contained" onClick={handleCheckout} fullWidth>
-                Confirm Checkout
-              </Button>
-            </form>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseCheckoutForm}>Cancel</Button>
-          </DialogActions>
-        </Dialog>
+  <DialogTitle>Checkout Form</DialogTitle>
+  <DialogContent>
+    <form>
+      <TextField
+        label="Student ID"
+        type="text"
+        fullWidth
+        value={studentId}
+        onChange={(e) => {
+          setStudentId(e.target.value);
+          setIsValidStudentId(true); // Reset the validity state when the user changes the student ID
+        }}
+        sx={{ marginBottom: 2 }}
+        error={!isValidStudentId} // Apply error styling if the student ID is invalid
+        helperText={!isValidStudentId && 'Invalid student ID'} // Display an error message if the student ID is invalid
+      />
+      <Button variant="contained" onClick={handleCheckout} fullWidth>
+        Confirm Checkout
+      </Button>
+    </form>
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={handleCloseCheckoutForm}>Cancel</Button>
+  </DialogActions>
+</Dialog>
         {/* Book Details Dialog */}
 <Dialog open={openDetailsDialog} onClose={() => setOpenDetailsDialog(false)} maxWidth="md" fullWidth>
     <DialogTitle>Book Details</DialogTitle>
