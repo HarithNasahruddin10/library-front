@@ -27,6 +27,8 @@ import {
 import AddBook from './AddBook';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
+import { toast } from 'react-toastify';
+import CheckoutForm from './CheckoutForm';
 
 const BookList = () => {
   const navigate = useNavigate();
@@ -46,17 +48,19 @@ const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
 const [latestCheckedOutBookDetails, setLatestCheckedOutBookDetails] = useState(null);
 const [openLatestCheckedOutDialog, setOpenLatestCheckedOutDialog] = useState(false);
 const [isValidStudentId, setIsValidStudentId] = useState(true);
+const [shouldRefresh, setShouldRefresh] = useState(false);
 
 
 
-  useEffect(() => {
-    axios.get('http://localhost:8080/api/books')
-      .then(response => {
-        setBooks(response.data);
-        setFilteredBooks(response.data);
-      })
-      .catch(error => console.error('Error fetching books:', error));
-  }, []);
+useEffect(() => {
+  axios.get('http://localhost:8080/api/books')
+    .then(response => {
+      setBooks(response.data);
+      setFilteredBooks(response.data);
+      setShouldRefresh(false);
+    })
+    .catch(error => console.error('Error fetching books:', error));
+}, [shouldRefresh]);
 
   useEffect(() => {
     // Apply filters whenever searchTerm, selectedCategory, or selectedStatus change
@@ -75,14 +79,15 @@ const [isValidStudentId, setIsValidStudentId] = useState(true);
 
   const handleCheckout = async () => {
     try {
+      
       // Check the validity of the student ID
-      const isValid = await checkStudentValidity(studentId);
+      // const isValid = await checkStudentValidity(studentId);
   
-      if (!isValid) {
-        // Set the state to indicate an invalid student ID
-        setIsValidStudentId(false);
-        return;
-      }
+      // if (!isValid) {
+      //   // Set the state to indicate an invalid student ID
+      //   setIsValidStudentId(false);
+      //   return;
+      // }
   
       // Proceed with the checkout if the student ID is valid
       const response = await axios.post(
@@ -100,15 +105,19 @@ const [isValidStudentId, setIsValidStudentId] = useState(true);
   
       // Handle the response as needed
       console.log('Checkout successful:', response.data);
-      navigate('/');
+      toast.success('Checkout successful, Book borrowed: ', response.data)
+      navigate('/', { replace: true }); 
+
   
       // Reset state after successful checkout
       setSelectedBook(null);
       setStudentId('');
       handleCloseCheckoutForm(); // Close the checkout form modal
-      setIsValidStudentId(true); // Reset the validity state
+      setIsValidStudentId(true); 
+      setShouldRefresh(true)// Reset the validity state
     } catch (error) {
       console.error('Error during checkout:', error);
+      toast.error('Error during checkout');
     }
   };
   
@@ -365,8 +374,18 @@ const fetchLatestCheckedOutBookDetails = async (bookId) => {
         {/* Checkout Form */}
         <Dialog open={openCheckoutDialog} onClose={handleCloseCheckoutForm} maxWidth="xs" fullWidth>
   <DialogTitle>Checkout Form</DialogTitle>
-  <DialogContent>
-    <form>
+  <CheckoutForm
+          selectedBook={selectedBook}
+          handleCloseCheckoutForm={() => setOpenCheckoutDialog(false)}
+          studentId={studentId}
+          setStudentId={setStudentId}
+          isValidStudentId={isValidStudentId}
+          setIsValidStudentId={setIsValidStudentId}
+          setShouldRefresh={setShouldRefresh}
+        />
+  {/* <DialogContent> */}
+
+    {/* <form>
       <TextField
         label="Student ID"
         type="text"
@@ -383,8 +402,8 @@ const fetchLatestCheckedOutBookDetails = async (bookId) => {
       <Button variant="contained" onClick={handleCheckout} fullWidth>
         Confirm Checkout
       </Button>
-    </form>
-  </DialogContent>
+    </form> */}
+  {/* </DialogContent> */}
   <DialogActions>
     <Button onClick={handleCloseCheckoutForm}>Cancel</Button>
   </DialogActions>
